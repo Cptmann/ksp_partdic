@@ -3,30 +3,48 @@ import platform
 #import mathutils
 
 
+exceptions = {}
+#The exceptions dic is for the mod that don't have the same naming convention
+#in the .cfg and in the .craft. The structure of the dic is like this
+#
+#          'mod name'         'folder name'  replace rule
+exceptions['B9 Aerospace'] = ('B9_Aerospace',('_','.'))
+exceptions['B9 Style Shuttle Wings'] = ('GilB9Shuttle_Wings',('_','.'))
+
+
+#In the following functions p is for part,... rs for right_scale and rl for right_loc
+def make_dic(path):
+    cfgs = probe_large(path)
+    p,rs,rl = make_dic_aux(cfgs,path)
+    exceptions_manager(p,rs,rl,exceptions)
+    return(p,rs,rl)
+    
+    
+              
 
     
-def cheaters_probe(path):
+def probe(path):
 #The path must be the directory path for KSP not the .exe path, eg: "C:\\ksp-090\KSP" not ""C:\\ksp-090\KSP\KSP.exe"
 #otherwise it won't find anything
-#This function is for finding all the .cfg. Cheating because an already made function is used
+#This function is for finding all the .cfg.
     cfgs=[]
-    for p,d,f in os.walk(os.path.join(path,"GameData")): #os.walk creates the list of dirs, subdirs and files <- Cheating :p
+    for p,d,f in os.walk(os.path.join(path,"GameData")): #os.walk creates the list of dirs, subdirs and files
         for i in f:
             if ".cfg" in i and "Parts" in p: #Select the files needed for later
                 cfgs.append((p,i))
     return(cfgs)
     
-def cheaters_probe_large(path):
+def probe_large(path):
 #This one is for the mod which don't have a 'Parts' folder, but it will pick useless .cfg files too 
     cfgs=[]
-    for p,d,f in os.walk(os.path.join(path,"GameData")): #os.walk creates the list of dirs, subdirs and files <- Cheating :p
+    for p,d,f in os.walk(os.path.join(path,"GameData")): #os.walk creates the list of dirs, subdirs and files
         for i in f:
             if ".cfg" in i: #Select the files needed for later
                 cfgs.append((p,i))
     return(cfgs)
     
     
-def make_dic(cfgs,kspdir): #This function is the one making the dic
+def make_dic_aux(cfgs,kspdir): #This function is the one making the dic
     if platform.system() == 'Windows': #Thanks Dasoccerguy for that part :)
         sep = "\\" #The path separator to use, used just one time 
     else:
@@ -103,8 +121,42 @@ def make_dic(cfgs,kspdir): #This function is the one making the dic
             if got_pos:
                 right_loc[part_name] = (pos) #And finally here
     return(partdir,right_scale,right_loc)
-    
 
-#To create the dictionnaries:
-#a=cheaters_probe(kspdir)
-#parts,right_sc,right_loc=make_dic(a,kspdir)
+
+         
+def exceptions_manager(partdir,rs,rl,exceptions):
+    def add_to_dir(modif_list,dic):
+        for modif in modif_list:
+            dic[modif[0]]=modif[1]
+        return(dic)
+    def del_from_dir(modif_list,dic):
+        for modif in modif_list:
+            del dic[modif]
+        return(dic)
+    p_del = []
+    p_add = []
+    rs_del= []
+    rs_add= []
+    rl_del= []
+    rl_add= []
+    for mod in exceptions:
+        direc=exceptions[mod][0]
+        rule=exceptions[mod][1]
+        for part in partdir:
+            if direc in partdir[part][0]:
+                new_name= part.replace(rule[0],rule[1])
+                p_add.append((new_name,partdir[part]))
+                p_del.append(part)
+                if part in rs:
+                    rs_add.append((new_name,rs[part]))
+                    rs_del.append(part)
+                if part in rl:
+                    rl_add.append((new_name,rl[part]))
+                    rl_del.append(part)
+    add_to_dir(p_add,partdir)
+    add_to_dir(rs_add,rs)
+    add_to_dir(rl_add,rl)
+    del_from_dir(p_del,partdir)
+    del_from_dir(rs_del,rs)
+    del_from_dir(rl_del,rl)
+    return()
