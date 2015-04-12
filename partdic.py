@@ -17,7 +17,7 @@ def make_exceptions():
 #In the following functions p is for part,... rs for right_scale and rl for right_loc
 def make_dict(path):
     cfgs = probe_large(path)
-    p,rl = make_dict_aux(cfgs,path)
+    p,rs,rl = make_dict_aux(cfgs,path)
     #exceptions = make_exceptions()
     #exceptions_manager(p,rl,exceptions)
     return(p,rl)
@@ -133,7 +133,6 @@ def make_dict_aux(cfgs,kspdir): #This function is the one making the dict
             if got_pos:
                 right_loc[part_name] = pos
     return(partdir,right_scale,right_loc)
-    #return(partdir,right_loc)
 
 
          
