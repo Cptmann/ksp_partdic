@@ -1,27 +1,35 @@
+
 import os
 import platform
-#import mathutils
 
-
-exceptions = {}
-#The exceptions dic is for the mod that don't have the same naming convention
-#in the .cfg and in the .craft. The structure of the dic is like this
-#
-#          'mod name'         'folder name'  replace rule
-exceptions['B9 Aerospace'] = ('B9_Aerospace',('_','.'))
-exceptions['B9 Style Shuttle Wings'] = ('GilB9Shuttle_Wings',('_','.'))
+def make_exceptions():
+    exceptions = {}
+    #The exceptions dict is for the mod that don't have the same naming convention
+    #in the .cfg and in the .craft. The structure of the dic is like this
+    #
+    #          'mod name'         'folder name'  replace rule
+    exceptions['B9 Aerospace'] = ('B9_Aerospace',('_','.'))
+    exceptions['B9 Style Shuttle Wings'] = ('GilB9Shuttle_Wings',('_','.'))
+    #add more as necessary when mods inevitably fail
+    return exceptions
 
 
 #In the following functions p is for part,... rs for right_scale and rl for right_loc
-def make_dic(path):
+def make_dict(path):
     cfgs = probe_large(path)
-    p,rs,rl = make_dic_aux(cfgs,path)
-    exceptions_manager(p,rs,rl,exceptions)
+    p,rl = make_dict_aux(cfgs,path)
+    #exceptions = make_exceptions()
+    #exceptions_manager(p,rl,exceptions)
+    return(p,rl)
+    
+def make_dict_with_rs(path):
+    cfgs = probe_large(path)
+    p,rs,rl = make_dict_aux(cfgs,path)
+    #exceptions = make_exceptions()
+    #exceptions_manager(p,rs,rl,exceptions)
     return(p,rs,rl)
-    
-    
-              
 
+    
     
 def probe(path):
 #The path must be the directory path for KSP not the .exe path, eg: "C:\\ksp-090\KSP" not ""C:\\ksp-090\KSP\KSP.exe"
@@ -44,7 +52,7 @@ def probe_large(path):
     return(cfgs)
     
     
-def make_dic_aux(cfgs,kspdir): #This function is the one making the dic
+def make_dict_aux(cfgs,kspdir): #This function is the one making the dict
     if platform.system() == 'Windows': #Thanks Dasoccerguy for that part :)
         sep = "\\" #The path separator to use, used just one time 
     else:
@@ -57,8 +65,8 @@ def make_dic_aux(cfgs,kspdir): #This function is the one making the dic
         path,cfg=part_tuple
         part_name = ""
         pos = (0,0,0)
-        scale=(0,0,0)
-        rescale_fact = 1
+        scale=(1,1,1)
+        rescale_fact = 1.25
         f=open(os.path.join(path,cfg))
         part_path = ""
         got_path = False
@@ -78,14 +86,14 @@ def make_dic_aux(cfgs,kspdir): #This function is the one making the dic
             if ("scale =" in line) and not(got_scale):
                 line = line.replace(","," ")
                 line_in=line.strip().split()
-                if len(line_in) == 3: #For lines : scale  = 22
-                    sc = float(line_in[-1])
-                    scale= (sc,sc,sc)
-                    got_scale = True
+#                if len(line_in) == 3: #For lines : scale  = 22
+#                    sc = float(line_in[-1])
+#                    scale= (sc,sc,sc)
+#                    got_scale = True
                 if len(line_in) == 5: #For lines : scale = 22,10,50
                     line = line.replace(","," ") 
-                    x,y,z=line_in[-3:]
-                    scale = (float(x),float(y),float(z))
+                    sx,sy,sz=line_in[-3:]
+                    scale = (float(sx),float(sy),float(sz))
                     got_scale = True
             if "position =" in line and not(got_pos):
                 line = line.replace(","," ")
@@ -102,29 +110,35 @@ def make_dic_aux(cfgs,kspdir): #This function is the one making the dic
                 got_path= True
             if "mesh =" in line and not(got_path):
                 part_path = line.split()[-1]
+                if ".DAE" in part_path or ".dae" in part_path:
+                    part_path = "model.mu"                  # or at least I hope so
                 part_path = os.path.join(path,part_path)
                 got_path = True
                 
         f.close()      
-        if got_name: #Adds the part to the dic if the the name was acquired
+        if got_name: #Adds the part to the dict if the the name was acquired
             partdir[part_name] = [os.path.join(part_path),category]
-            if got_scale and got_rescale:
-                x,y,z=scale
-                x*=rescale_fact
-                y*=rescale_fact
-                z*=rescale_fact 
-                right_scale[part_name] = ((x,y,z)) #Change to Vector((x,y,z)) when importing to blender
+            if not(got_rescale) and not(got_scale):
+                right_scale[part_name]= (1.25,1.25,1.25)
+            if not(got_rescale) and got_scale:
+                right_scale[part_name]= scale
             if got_rescale and not(got_scale):
-                right_scale[part_name] = ((rescale_fact,rescale_fact,rescale_fact)) #Same here
-            if got_scale and not(got_rescale):
-                right_scale[part_name] = (scale)   #Here again
+                right_scale[part_name]= (rescale_fact,rescale_fact,rescale_fact)
+            if got_rescale and got_scale:
+                sx,sy,sz=scale
+                sx*=rescale_fact
+                sy*=rescale_fact
+                sz*=rescale_fact
+                right_scale[part_name]= (sx,sy,sz)
             if got_pos:
-                right_loc[part_name] = (pos) #And finally here
+                right_loc[part_name] = pos
     return(partdir,right_scale,right_loc)
+    #return(partdir,right_loc)
 
 
          
 def exceptions_manager(partdir,rs,rl,exceptions):
+#def exceptions_manager(partdir,rl,exceptions):
     def add_to_dir(modif_list,dic):
         for modif in modif_list:
             dic[modif[0]]=modif[1]
